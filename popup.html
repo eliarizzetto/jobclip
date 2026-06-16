@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Job Tracker</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Job Tracker</h1>
+    <button id="btnOptions" class="icon-btn" title="Settings">&#9881;</button>
+  </header>
+
+  <main>
+    <section class="extraction-actions">
+      <button id="btnExtractPage" class="btn btn-primary">
+        Extract from current page
+      </button>
+
+      <div class="separator">or</div>
+
+      <label class="file-label">
+        Upload a PDF from your computer
+        <input type="file" id="inputPdf" accept="application/pdf" />
+      </label>
+    </section>
+
+    <div id="status" class="status"></div>
+
+    <form id="jobForm" class="job-form hidden">
+      <!-- Form fields generated dynamically from JSON schema -->
+    </form>
+  </main>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

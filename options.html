@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Job Tracker - Settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <h1>Settings - Job Tracker</h1>
+
+  <form id="optionsForm">
+    <section>
+      <h2>AI Provider</h2>
+
+      <div class="field">
+        <label for="provider">Provider</label>
+        <select id="provider">
+          <option value="anthropic">Anthropic (Claude)</option>
+          <option value="openai_compatible">OpenAI Compatible (Z.ai, OpenAI, Groq, etc.)</option>
+        </select>
+      </div>
+
+      <!-- Anthropic fields -->
+      <div id="anthropicFields" class="provider-section active">
+        <div class="field">
+          <label for="anthropicApiKey">Anthropic API Key</label>
+          <input type="password" id="anthropicApiKey" autocomplete="off" placeholder="sk-ant-..." />
+          <p class="hint">
+            Create/retrieve your key at
+            <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>.
+            The key is stored only locally in your browser.
+          </p>
+        </div>
+
+        <div class="field">
+          <label for="anthropicModel">Model</label>
+          <select id="anthropicModel">
+            <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (cheaper, recommended)</option>
+            <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (more accurate, more expensive)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- OpenAI Compatible fields -->
+      <div id="openaiCompatibleFields" class="provider-section">
+        <div class="field">
+          <label for="oaiEndpoint">API Endpoint URL</label>
+          <input type="text" id="oaiEndpoint" placeholder="e.g. https://open.bigmodel.cn/api/paas/v4/chat/completions" />
+          <p class="hint">
+            The chat completions endpoint URL. Examples:<br />
+            Z.ai: <code>https://open.bigmodel.cn/api/paas/v4/chat/completions</code><br />
+            OpenAI: <code>https://api.openai.com/v1/chat/completions</code><br />
+            Groq: <code>https://api.groq.com/openai/v1/chat/completions</code>
+          </p>
+        </div>
+
+        <div class="field">
+          <label for="oaiApiKey">API Key</label>
+          <input type="password" id="oaiApiKey" autocomplete="off" placeholder="Your API key" />
+        </div>
+
+        <div class="field">
+          <label for="oaiModel">Model Name</label>
+          <input type="text" id="oaiModel" placeholder="e.g. glm-5.1, gpt-4o, llama-3.3-70b" />
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Destination Google Sheet</h2>
+
+      <div class="field">
+        <label for="spreadsheetId">Google Sheet ID</label>
+        <input type="text" id="spreadsheetId" placeholder="e.g. 1AbCDefGhIjkLmNoPQRstuVWxyz1234567890" />
+        <p class="hint">
+          The part of the sheet URL between <code>/d/</code> and <code>/edit</code>:<br />
+          <code>https://docs.google.com/spreadsheets/d/<strong>ID_HERE</strong>/edit</code>
+        </p>
+      </div>
+
+      <div class="field">
+        <label for="sheetName">Sheet (tab) name</label>
+        <input type="text" id="sheetName" placeholder="Job Postings" />
+        <p class="hint">If a sheet with this name doesn't exist, it will be created automatically.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Field Schema</h2>
+      <p class="hint">
+        Edit the JSON below to customize which fields are extracted and saved.
+        Each field defines how it appears in the form, what the AI extracts, and the column name in Google Sheets.
+        See the <code>README.md</code> for details on the schema format.
+      </p>
+      <div class="field">
+        <label for="fieldSchema">Field Schema (JSON)</label>
+        <textarea id="fieldSchema" rows="16"></textarea>
+      </div>
+      <div class="actions-row">
+        <button type="button" id="btnResetSchema" class="btn-reset">Reset to default</button>
+      </div>
+    </section>
+
+    <button type="submit" class="btn-save">Save settings</button>
+    <p id="status" class="status"></p>
+  </form>
+
+  <section class="instructions">
+    <h2>Initial Setup (one-time)</h2>
+    <p>To use automatic saving to Google Sheets, you need to register the extension on Google Cloud. See the <code>README.md</code> file included with the extension for step-by-step instructions.</p>
+  </section>
+
+  <script src="options.js"></script>
+</body>
+</html>

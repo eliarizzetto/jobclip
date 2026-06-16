@@ -1,0 +1,202 @@
+[
+  {
+    "name": "save_date",
+    "label": "Save Date",
+    "type": "date",
+    "aiDescription": "date when the posting was saved",
+    "readonly": true,
+    "auto": true
+  },
+  {
+    "name": "company",
+    "label": "Company / Organization",
+    "type": "text",
+    "placeholder": "e.g. Acme Corp",
+    "aiDescription": "name of the company or organization posting the job",
+    "readonly": false,
+    "auto": false
+  },
+  {
+    "name": "job_title",
+    "label": "Job Title",
+    "type": "text",
+    "placeholder": "e.g. Senior Frontend Developer",
+    "aiDescription": "title of the job position",
+    "readonly": false,
+    "auto": false
+  },
+  {
+    "name": "experience_level",
+    "label": "Experience Level",
+    "type": "select",
+    "options": [
+      {
+        "value": "not_specified",
+        "label": "Not specified"
+      },
+      {
+        "value": "junior",
+        "label": "Junior"
+      },
+      {
+        "value": "mid",
+        "label": "Mid"
+      },
+      {
+        "value": "senior",
+        "label": "Senior"
+      },
+      {
+        "value": "lead_manager",
+        "label": "Lead / Manager"
+      }
+    ],
+    "aiDescription": "one of: junior, mid, senior, lead_manager, not_specified",
+    "readonly": false,
+    "auto": false
+  },
+  {
+    "name": "contract_type",
+    "label": "Contract Type",
+    "type": "text",
+    "placeholder": "e.g. permanent, fixed-term, internship",
+    "aiDescription": "type of contract (e.g. permanent, fixed-term, internship, freelance, apprenticeship, not_specified)",
+    "readonly": false,
+    "auto": false
+  },
+  {
+    "name": "work_mode",
+    "label": "Work Mode",
+    "type": "select",
+    "options": [
+      {
+        "value": "not_specified",
+        "label": "Not specified"
+      },
+      {
+        "value": "remote",
+        "label": "Remote"
+      },
+      {
+        "value": "hybrid",
+        "label": "Hybrid"
+      },
+      {
+        "value": "onsite",
+        "label": "On-site"
+      }
+    ],
+    "aiDescription": "one of: remote, hybrid, onsite, not_specified",
+    "readonly": false,
+    "auto": false
+  },
+  {
+    "name": "location",
+    "label": "Location",
+    "type": "text",
+    "placeholder": "city, country",
+    "aiDescription": "city/country of the workplace (if multiple locations, list them comma-separated)",
+    "readonly": false,
+    "auto": false
+  },
+  {
+    "name": "salary_min",
+    "label": "Salary Min",
+    "type": "text",
+    "placeholder": "e.g. 30000",
+    "aiDescription": "minimum annual gross salary value, number only without symbols, empty if not stated",
+    "readonly": false,
+    "auto": false
+  },
+  {
+    "name": "salary_max",
+    "label": "Salary Max",
+    "type": "text",
+    "placeholder": "e.g. 40000",
+    "aiDescription": "maximum annual gross salary value, number only without symbols. If only one value is given, repeat it in both salary_min and salary_max",
+    "readonly": false,
+    "auto": false
+  },
+  {
+    "name": "currency",
+    "label": "Currency",
+    "type": "text",
+    "placeholder": "EUR",
+    "aiDescription": "currency code e.g. EUR, USD, GBP - empty if not determinable",
+    "readonly": false,
+    "auto": false
+  },
+  {
+    "name": "salary_notes",
+    "label": "Salary / Benefits Notes",
+    "type": "text",
+    "placeholder": "e.g. gross annual, 13 months, bonus...",
+    "aiDescription": "any notes about compensation (e.g. 'gross annual, 13 months', 'plus bonus', 'depending on experience')",
+    "readonly": false,
+    "auto": false
+  },
+  {
+    "name": "publish_date",
+    "label": "Publish Date",
+    "type": "date",
+    "aiDescription": "date the posting was published in YYYY-MM-DD format if available, otherwise empty",
+    "readonly": false,
+    "auto": false
+  },
+  {
+    "name": "deadline",
+    "label": "Application Deadline",
+    "type": "date",
+    "aiDescription": "application deadline in YYYY-MM-DD format if available, otherwise empty",
+    "readonly": false,
+    "auto": false
+  },
+  {
+    "name": "skills",
+    "label": "Required Skills",
+    "type": "textarea",
+    "aiDescription": "concise list of main required skills/technologies, separated by comma",
+    "readonly": false,
+    "auto": false
+  },
+  {
+    "name": "summary",
+    "label": "Brief Summary",
+    "type": "textarea",
+    "aiDescription": "summary of the position in at most 2 sentences",
+    "readonly": false,
+    "auto": false
+  },
+  {
+    "name": "notes",
+    "label": "Notes",
+    "type": "textarea",
+    "aiDescription": "any other relevant information not covered by previous fields (e.g. special benefits, required languages), at most 2-3 sentences",
+    "readonly": false,
+    "auto": false
+  },
+  {
+    "name": "source",
+    "label": "Source",
+    "type": "text",
+    "aiDescription": "source domain of the posting",
+    "readonly": true,
+    "auto": true
+  },
+  {
+    "name": "url",
+    "label": "URL",
+    "type": "text",
+    "aiDescription": "full URL of the job posting",
+    "readonly": true,
+    "auto": true
+  },
+  {
+    "name": "other",
+    "label": "Other Notes",
+    "type": "text",
+    "aiDescription": "other notes on the job posting",
+    "readonly": false,
+    "auto": false
+  }
+]
