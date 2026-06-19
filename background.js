@@ -72,6 +72,7 @@ async function readConfig() {
     "modelName",
     "anthropicModel",
     "anthropicApiKey",
+    "destination",
     "spreadsheetId",
     "sheetName"
   ]);
@@ -80,6 +81,7 @@ async function readConfig() {
     apiKey: cfg.apiKey || cfg.anthropicApiKey || "",
     apiEndpoint: cfg.apiEndpoint || "",
     modelName: cfg.modelName || cfg.anthropicModel || "claude-haiku-4-5-20251001",
+    destination: cfg.destination || "google_sheets",
     spreadsheetId: cfg.spreadsheetId || "",
     sheetName: cfg.sheetName || "Job Postings"
   };

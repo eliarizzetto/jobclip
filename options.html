@@ -67,21 +67,55 @@
     </section>
 
     <section>
-      <h2>Destination Google Sheet</h2>
+      <h2>Data Destination</h2>
 
       <div class="field">
-        <label for="spreadsheetId">Google Sheet ID</label>
-        <input type="text" id="spreadsheetId" placeholder="e.g. 1AbCDefGhIjkLmNoPQRstuVWxyz1234567890" />
+        <label for="destination">Save postings to…</label>
+        <select id="destination">
+          <option value="google_sheets">Google Sheet (online)</option>
+          <option value="local_csv">Local CSV file (private)</option>
+        </select>
         <p class="hint">
-          The part of the sheet URL between <code>/d/</code> and <code>/edit</code>:<br />
-          <code>https://docs.google.com/spreadsheets/d/<strong>ID_HERE</strong>/edit</code>
+          <strong>Google Sheet</strong> appends rows to an online spreadsheet (requires the one-time Google Cloud setup below).
+          <strong>Local CSV</strong> saves directly to a file on your computer — no account needed, nothing leaves your browser.
         </p>
       </div>
 
-      <div class="field">
-        <label for="sheetName">Sheet (tab) name</label>
-        <input type="text" id="sheetName" placeholder="Job Postings" />
-        <p class="hint">If a sheet with this name doesn't exist, it will be created automatically.</p>
+      <!-- Google Sheets fields -->
+      <div id="googleSheetsFields" class="destination-section active">
+        <div class="field">
+          <label for="spreadsheetId">Google Sheet ID</label>
+          <input type="text" id="spreadsheetId" placeholder="e.g. 1AbCDefGhIjkLmNoPQRstuVWxyz1234567890" />
+          <p class="hint">
+            The part of the sheet URL between <code>/d/</code> and <code>/edit</code>:<br />
+            <code>https://docs.google.com/spreadsheets/d/<strong>ID_HERE</strong>/edit</code>
+          </p>
+        </div>
+
+        <div class="field">
+          <label for="sheetName">Sheet (tab) name</label>
+          <input type="text" id="sheetName" placeholder="Job Postings" />
+          <p class="hint">If a sheet with this name doesn't exist, it will be created automatically.</p>
+        </div>
+      </div>
+
+      <!-- Local CSV fields -->
+      <div id="csvFields" class="destination-section">
+        <div class="field">
+          <label>CSV file</label>
+          <div class="actions-row">
+            <button type="button" id="btnPickCsv" class="btn-reset">Choose CSV file…</button>
+            <button type="button" id="btnClearCsv" class="btn-reset">Clear</button>
+          </div>
+          <p class="hint">
+            Saved file: <strong id="csvFileName">No file chosen</strong>
+          </p>
+          <p class="hint">
+            Pick a CSV file (a new one is fine — the column header row is created on the first save).
+            The same file is appended to on every save. The first save after starting Chrome may ask
+            once for permission to access the file: accept to continue.
+          </p>
+        </div>
       </div>
     </section>
 
@@ -110,6 +144,6 @@
     <p>To use automatic saving to Google Sheets, you need to register the extension on Google Cloud. See the <code>README.md</code> file included with the extension for step-by-step instructions.</p>
   </section>
 
-  <script src="options.js"></script>
+  <script type="module" src="options.js"></script>
 </body>
 </html>

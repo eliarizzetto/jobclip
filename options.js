@@ -1,5 +1,7 @@
 // options.js
 
+import { saveCsvHandle, getCsvHandle, clearCsvHandle } from "./csv-store.js";
+
 const elProvider = document.getElementById("provider");
 const elAnthropicFields = document.getElementById("anthropicFields");
 const elOpenAIFields = document.getElementById("openaiCompatibleFields");
@@ -8,8 +10,14 @@ const elAnthropicModel = document.getElementById("anthropicModel");
 const elOaiEndpoint = document.getElementById("oaiEndpoint");
 const elOaiApiKey = document.getElementById("oaiApiKey");
 const elOaiModel = document.getElementById("oaiModel");
+const elDestination = document.getElementById("destination");
+const elGoogleSheetsFields = document.getElementById("googleSheetsFields");
+const elCsvFields = document.getElementById("csvFields");
 const elSpreadsheetId = document.getElementById("spreadsheetId");
 const elSheetName = document.getElementById("sheetName");
+const btnPickCsv = document.getElementById("btnPickCsv");
+const btnClearCsv = document.getElementById("btnClearCsv");
+const elCsvFileName = document.getElementById("csvFileName");
 const elFieldSchema = document.getElementById("fieldSchema");
 const elStatus = document.getElementById("status");
 const elForm = document.getElementById("optionsForm");
@@ -28,6 +36,54 @@ function switchProviderUI(provider) {
 
 elProvider.addEventListener("change", () => switchProviderUI(elProvider.value));
 
+// Destination switching (Google Sheet vs local CSV)
+function switchDestinationUI(destination) {
+  if (destination === "local_csv") {
+    elGoogleSheetsFields.classList.remove("active");
+    elCsvFields.classList.add("active");
+  } else {
+    elGoogleSheetsFields.classList.add("active");
+    elCsvFields.classList.remove("active");
+  }
+}
+
+elDestination.addEventListener("change", () => switchDestinationUI(elDestination.value));
+
+// --- Local CSV file picker ------------------------------------------------
+
+function setCsvFileName(name) {
+  elCsvFileName.textContent = name || "No file chosen";
+}
+
+btnPickCsv.addEventListener("click", async () => {
+  if (!window.showSaveFilePicker) {
+    elStatus.textContent = "This browser does not support local file access. Use Chrome or Edge.";
+    elStatus.className = "status error";
+    return;
+  }
+  try {
+    const handle = await window.showSaveFilePicker({
+      suggestedName: "job-postings.csv",
+      types: [{ description: "CSV", accept: { "text/csv": [".csv"] } }],
+      excludeAcceptAllOption: false
+    });
+    await saveCsvHandle(handle);
+    setCsvFileName(handle.name);
+    elStatus.textContent = "";
+    elStatus.className = "status";
+  } catch (e) {
+    if (e && e.name === "AbortError") return; // user cancelled
+    elStatus.textContent = "Could not choose file: " + (e?.message || e);
+    elStatus.className = "status error";
+  }
+});
+
+btnClearCsv.addEventListener("click", async (e) => {
+  e.preventDefault();
+  await clearCsvHandle();
+  setCsvFileName("");
+});
+
 // Load settings
 async function load() {
   const cfg = await chrome.storage.sync.get([
@@ -37,6 +93,7 @@ async function load() {
     "modelName",
     "anthropicApiKey",
     "anthropicModel",
+    "destination",
     "spreadsheetId",
     "sheetName",
     "fieldSchema"
@@ -45,6 +102,13 @@ async function load() {
   const provider = cfg.provider || "anthropic";
   elProvider.value = provider;
   switchProviderUI(provider);
+
+  // Destination (Google Sheet vs local CSV)
+  const destination = cfg.destination || "google_sheets";
+  elDestination.value = destination;
+  switchDestinationUI(destination);
+  const csvHandle = await getCsvHandle();
+  setCsvFileName(csvHandle?.name || "");
 
   // Anthropic fields
   elAnthropicApiKey.value = cfg.anthropicApiKey || "";
@@ -109,12 +173,29 @@ elForm.addEventListener("submit", async (e) => {
   }
 
   const provider = elProvider.value;
+  const destination = elDestination.value;
   const data = {
     provider: provider,
+    destination: destination,
     spreadsheetId: elSpreadsheetId.value.trim(),
     sheetName: elSheetName.value.trim() || "Job Postings",
     fieldSchema: elFieldSchema.value
   };
+
+  // Destination-specific validation
+  if (destination === "google_sheets" && !data.spreadsheetId) {
+    elStatus.textContent = "Google Sheet ID is required when saving to Google Sheets.";
+    elStatus.className = "status error";
+    return;
+  }
+  if (destination === "local_csv") {
+    const csvHandle = await getCsvHandle();
+    if (!csvHandle) {
+      elStatus.textContent = "Choose a CSV file before saving.";
+      elStatus.className = "status error";
+      return;
+    }
+  }
 
   if (provider === "anthropic") {
     data.anthropicApiKey = elAnthropicApiKey.value.trim();

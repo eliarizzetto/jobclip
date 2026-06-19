@@ -1,6 +1,9 @@
 // popup.js
 // Main popup logic: text extraction (page or PDF), AI field extraction,
-// dynamic form generation from JSON schema, and Google Sheet saving.
+// dynamic form generation from JSON schema, and saving to either a Google
+// Sheet or a local CSV file (chosen in Options).
+
+import { getCsvHandle, csvEscape, rowToCsvLine, parseCsvHeaderLine } from "./csv-store.js";
 
 const elStatus = document.getElementById("status");
 const elForm = document.getElementById("jobForm");
@@ -9,6 +12,16 @@ const inputPdf = document.getElementById("inputPdf");
 const btnOptions = document.getElementById("btnOptions");
 
 btnOptions.addEventListener("click", () => chrome.runtime.openOptionsPage());
+
+// Destination (google_sheets | local_csv) — resolved before the form is built.
+let currentDestination = "google_sheets";
+const destinationPromise = chrome.storage.sync
+  .get("destination")
+  .then((r) => r.destination || "google_sheets");
+
+function getSaveButtonLabel() {
+  return currentDestination === "local_csv" ? "Save to CSV file" : "Save to Google Sheet";
+}
 
 function setStatus(text, type) {
   elStatus.textContent = text;
@@ -162,7 +175,7 @@ function buildFormFromSchema(schema) {
 
   const btnWrapper = document.createElement("div");
   btnWrapper.className = "field form-actions";
-  btnWrapper.innerHTML = `<button type="submit" id="btnSave" class="btn btn-primary">Save to Google Sheet</button>`;
+  btnWrapper.innerHTML = `<button type="submit" id="btnSave" class="btn btn-primary">${getSaveButtonLabel()}</button>`;
   elForm.appendChild(btnWrapper);
 }
 
@@ -210,6 +223,7 @@ async function handleExtraction(dataSource) {
     const fields = await askModelForFields(data);
     const schema = await getFieldSchema();
     window._currentSchema = schema;
+    currentDestination = await destinationPromise;
     buildFormFromSchema(schema);
     populateForm(fields, data.url);
     setStatus("Fields extracted. Review and edit before saving.", "success");
@@ -229,13 +243,76 @@ inputPdf.addEventListener("change", () => {
   inputPdf.value = "";
 });
 
-// --- Save to Google Sheet ------------------------------------------------
+// --- Save (Google Sheet or local CSV) -------------------------------------
+
+async function saveToLocalCsv(record, schema) {
+  const columns = schema.map((f) => f.name);
+  const handle = await getCsvHandle();
+  if (!handle) {
+    throw new Error("No CSV file chosen — configure it in the extension Options.");
+  }
+
+  // Re-grant permission. This must run off the click gesture; keep it before
+  // any long async work so the browser still sees user activation.
+  if ((await handle.queryPermission({ mode: "readwrite" })) !== "granted") {
+    let perm;
+    try {
+      perm = await handle.requestPermission({ mode: "readwrite" });
+    } catch (e) {
+      throw new Error("File access was denied: " + (e?.message || e));
+    }
+    if (perm !== "granted") {
+      throw new Error("File access was denied. Allow access to the CSV file to save.");
+    }
+  }
+
+  let existingText = "";
+  try {
+    const file = await handle.getFile();
+    existingText = await file.text();
+  } catch {
+    // Treat unreadable/missing as empty.
+  }
+
+  const headerLine = columns.map(csvEscape).join(",") + "\r\n";
+  const dataLine = rowToCsvLine(columns, record);
+  const existingHeader = parseCsvHeaderLine(existingText);
+
+  let newText;
+  if (!existingHeader) {
+    // New/empty file: write the schema header plus the first data row.
+    newText = headerLine + dataLine;
+  } else if (
+    existingHeader.length === columns.length &&
+    existingHeader.every((h, i) => h === columns[i])
+  ) {
+    // Header matches the schema: append the row.
+    newText = existingText.replace(/\s+$/, "") + "\r\n" + dataLine;
+  } else {
+    throw new Error(
+      "The CSV file's header does not match the current field schema. " +
+        "Choose a different file or align its columns in Options."
+    );
+  }
+
+  try {
+    const writable = await handle.createWritable();
+    await writable.write(new Blob([newText], { type: "text/csv" }));
+    await writable.close();
+  } catch (e) {
+    throw new Error(
+      "Could not write the CSV file (it may be open in another program, e.g. Excel): " +
+        (e?.message || e)
+    );
+  }
+
+  return handle.name;
+}
 
 elForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const btnSave = document.getElementById("btnSave");
   if (btnSave) btnSave.disabled = true;
-  setStatus("Saving to Google Sheet...", "loading");
 
   const formData = new FormData(elForm);
   const record = {};
@@ -251,9 +328,16 @@ elForm.addEventListener("submit", async (e) => {
   }
 
   try {
-    const response = await chrome.runtime.sendMessage({ type: "SAVE_TO_SHEET", payload: record });
-    if (!response?.ok) throw new Error(response?.error || "Error during save.");
-    setStatus("Saved successfully to Google Sheet!", "success");
+    if (currentDestination === "local_csv") {
+      setStatus("Saving to CSV file...", "loading");
+      const name = await saveToLocalCsv(record, schema);
+      setStatus("Saved to " + name + "!", "success");
+    } else {
+      setStatus("Saving to Google Sheet...", "loading");
+      const response = await chrome.runtime.sendMessage({ type: "SAVE_TO_SHEET", payload: record });
+      if (!response?.ok) throw new Error(response?.error || "Error during save.");
+      setStatus("Saved successfully to Google Sheet!", "success");
+    }
     elForm.reset();
     elForm.classList.add("hidden");
   } catch (err) {

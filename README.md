@@ -5,9 +5,25 @@ A Chrome extension (Manifest V3) that:
 1. Reads the text of the open web page (or a PDF, either open in the browser or uploaded from your computer);
 2. Sends it to an AI model (Anthropic Claude, Z.ai GLM, or any OpenAI-compatible API) asking it to extract the relevant job posting fields (company, title, salary, work mode, deadline, etc.) in structured format;
 3. Shows the extracted fields in a small editable form before saving;
-4. Saves the row to a Google Sheet that acts as a "database" of all collected postings.
+4. Saves the row to a **Google Sheet** or a **local CSV file** (your choice — see "Data Destination") that acts as a "database" of all collected postings.
 
-No data is sent to third-party servers other than your chosen AI provider (for extraction) and Google (for saving): keys/credentials remain stored only locally in your browser (`chrome.storage.sync`).
+You pick the destination once in the extension Options. The **local CSV** option never sends your data to Google (no account or setup needed) — only your chosen AI provider sees the posting text for extraction. The **Google Sheet** option appends to an online spreadsheet you share with your account. Keys/credentials remain stored only locally in your browser (`chrome.storage.sync`).
+
+### Setup at a glance
+
+Which steps you need depends **only** on your destination. Steps 1, 2, and 5 are always needed; the Google-specific steps (3 and 4) are skipped entirely if you choose local CSV.
+
+| Step | Local CSV | Google Sheet |
+|------|-----------|--------------|
+| **1.** Install the extension | needed | needed |
+| **2.** Configure the AI provider | needed | needed |
+| **3.** Configure Google Sheets access (OAuth) | _skip_ | needed |
+| **4.** Create the destination Google Sheet | _skip_ | needed |
+| **4b.** Pick a local CSV file | needed | _skip_ |
+| **5.** Field schema (optional tuning) | optional | optional |
+
+- **Fastest path (local CSV):** do **1 → 2 → 4b**. No Google account, no OAuth, no cloud project.
+- **Google Sheets path:** do **1 → 2 → 3 → 4**.
 
 ---
 
@@ -18,7 +34,7 @@ No data is sent to third-party servers other than your chosen AI provider (for e
 3. Click "Load unpacked" and select the `job-tracker-extension` folder (this folder).
 4. The extension will appear in the list named "Job Tracker - Job Posting Collector". **Note the extension ID** (a 32-character string shown below the name): you'll need it in step 3.
 
-At this point the extension is installed but not yet configured: you need to set the AI provider API key and the Google Sheets connection.
+At this point the extension is installed but not yet configured: you need to set the AI provider API key and pick a data destination (a Google Sheet or a local CSV file).
 
 ---
 
@@ -44,6 +60,8 @@ The extension supports two provider types:
 ---
 
 ## 3. Configuring Google Sheets Access (OAuth)
+
+> **Google Sheet destination only.** If you save to a **local CSV file**, skip this entire section and go to [§4](#4-local-csv-file-alternative-to-google-sheets).
 
 This is the most "technical" step but only needs to be done once.
 
@@ -84,7 +102,9 @@ This is the most "technical" step but only needs to be done once.
 
 ---
 
-## 4. Create the Destination Google Sheet
+## 3b. Create the Destination Google Sheet
+
+> **Google Sheet destination only.** Not needed for the local CSV path.
 
 1. Create a new Google Sheet (it can be empty, column headers are created automatically on first save).
 2. Copy the sheet ID from the URL:
@@ -93,6 +113,23 @@ This is the most "technical" step but only needs to be done once.
 4. Save settings.
 
 The first time you save a posting, Chrome will ask you to authorize the extension to access Google Sheets with your account: accept (you may see an "unverified app" warning because the app is in test mode - this is normal for personal projects, click "Advanced" -> "Go to... (unsafe)" to proceed, since you are the app creator).
+
+---
+
+## 4. Local CSV file (alternative to Google Sheets)
+
+If you prefer not to set up Google Cloud OAuth — or just want the data to stay on your computer — use the local CSV destination.
+
+1. Open the extension Options and, under **Data Destination**, choose **Local CSV file (private)**.
+2. Click **Choose CSV file…** and pick where to save it. A brand-new file is fine: the column header row is created automatically on the first save.
+3. Save settings. The same file is appended to on every save, so you build up one CSV "database" over time.
+
+Notes:
+- Only the columns defined by your field schema are written, in order (same as the Google Sheets flow). The first row is the header.
+- The browser stores a reference (file handle) to that file; it does **not** get a copy. The file is only read/written when you save.
+- The first save after starting Chrome may show a one-time permission prompt asking for access to the file — accept it to continue. This is a Chrome security requirement, not part of the extension.
+- If you edit the CSV's header row by hand (rename or remove a column), the next save will stop with a clear error rather than corrupt the file: align the header with the schema, or pick a new file in Options.
+- To switch back to Google Sheets at any time, change the destination in Options and paste your Sheet ID (sections [§3](#3-configuring-google-sheets-access-oauth) and [§3b](#3b-create-the-destination-google-sheet)). Both destinations can coexist in your settings; only the selected one is used.
 
 ---
 
@@ -172,7 +209,7 @@ You can remove or modify these, or add new auto fields. Custom auto fields will 
 2. Click the extension icon -> "Extract from current page".
 3. Wait a few seconds (page reading + AI call).
 4. Review/edit the pre-filled fields in the form.
-5. Click "Save to Google Sheet".
+5. Click "Save to Google Sheet" (or "Save to CSV file", depending on your chosen destination).
 
 ### From a PDF open in the browser
 

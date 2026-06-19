@@ -133,6 +133,14 @@ h2 {
   flex-direction: column;
 }
 
+.destination-section {
+  display: none;
+}
+.destination-section.active {
+  display: flex;
+  flex-direction: column;
+}
+
 .actions-row {
   display: flex;
   gap: 8px;
