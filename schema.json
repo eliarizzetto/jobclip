@@ -198,5 +198,14 @@
     "aiDescription": "other notes on the job posting",
     "readonly": false,
     "auto": false
+  },
+  {
+    "name": "applied_for",
+    "label": "Application sent?",
+    "type": "boolean",
+    "aiDescription": "whether application process was started or not (default: false)",
+    "readonly": false,
+    "auto": false,
+    "default": false
   }
 ]
