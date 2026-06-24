@@ -109,34 +109,36 @@ async function extractFromPdfFile(file) {
   return { text, url: "", title: file.name };
 }
 
-async function askModelForFields({ text, url, title }) {
-  if (!text || text.trim().length < 20) {
+// --- AI extraction job (owned by the service worker) ---------------------
+// The popup only kicks the job off; the result is written by the background to
+// chrome.storage.session.extractionJob. This way the LLM request survives the
+// popup being closed mid-analysis — reopen it and you'll see "Analyzing..."
+// until the job finishes, then the populated form.
+
+async function startExtractionJob(data) {
+  if (!data.text || data.text.trim().length < 20) {
     throw new Error("Extracted text is too short or empty.");
   }
   setLoading(true, "Analyzing the posting with AI...");
   const response = await chrome.runtime.sendMessage({
     type: "EXTRACT_FIELDS_LLM",
-    payload: { text, url, pageTitle: title }
+    payload: { text: data.text, url: data.url, pageTitle: data.title }
   });
-  if (!response?.ok) throw new Error(response?.error || "Error during AI extraction.");
-  return response.fields;
+  if (!response?.ok) throw new Error(response?.error || "Could not start AI extraction.");
+}
+
+async function applyExtractionResult({ fields, url, schema }) {
+  window._currentSchema = schema;
+  currentDestination = await destinationPromise;
+  buildFormFromSchema(schema);
+  populateForm(fields, url);
+  _draftUrl = url || "";
+  await saveDraft();
+  setStatus("Fields extracted. Review and edit before saving.", "success");
+  setLoading(false);
 }
 
 // --- Dynamic form generation from schema ---------------------------------
-
-async function getFieldSchema() {
-  const result = await chrome.storage.sync.get("fieldSchema");
-  if (result.fieldSchema) {
-    try {
-      return JSON.parse(result.fieldSchema);
-    } catch {
-      // Fall through to default
-    }
-  }
-  // Fetch default from background
-  const response = await chrome.runtime.sendMessage({ type: "GET_DEFAULT_SCHEMA" });
-  return response?.schema || [];
-}
 
 function buildFormFromSchema(schema) {
   elForm.innerHTML = "";
@@ -179,28 +181,31 @@ function buildFormFromSchema(schema) {
   elForm.appendChild(btnWrapper);
 }
 
-function populateForm(fields, url) {
+function populateForm(fields, url, recomputeAutos = true) {
   const schema = window._currentSchema || [];
   for (const [name, value] of Object.entries(fields || {})) {
     const el = elForm.elements[name];
     if (el) el.value = value ?? "";
   }
 
-  // Auto-fill fields
-  for (const field of schema) {
-    if (!field.auto) continue;
-    const el = elForm.elements[field.name];
-    if (!el) continue;
+  // Auto-fill fields (skipped when restoring a saved draft, so the original
+  // values — e.g. save_date from extraction day — are preserved).
+  if (recomputeAutos) {
+    for (const field of schema) {
+      if (!field.auto) continue;
+      const el = elForm.elements[field.name];
+      if (!el) continue;
 
-    if (field.name === "save_date") {
-      el.value = new Date().toISOString().slice(0, 10);
-    } else if (field.name === "url") {
-      el.value = url || "";
-    } else if (field.name === "source") {
-      try {
-        el.value = url ? new URL(url).hostname.replace(/^www\./, "") : "";
-      } catch {
-        el.value = "";
+      if (field.name === "save_date") {
+        el.value = new Date().toISOString().slice(0, 10);
+      } else if (field.name === "url") {
+        el.value = url || "";
+      } else if (field.name === "source") {
+        try {
+          el.value = url ? new URL(url).hostname.replace(/^www\./, "") : "";
+        } catch {
+          el.value = "";
+        }
       }
     }
   }
@@ -217,19 +222,56 @@ function populateForm(fields, url) {
   elForm.classList.remove("hidden");
 }
 
+// --- Draft persistence (chrome.storage.session) --------------------------
+// Safety net: the action popup closes on blur, but the extracted/edited values
+// survive and are restored on next open — no need to re-run the LLM.
+
+let _draftUrl = "";
+
+function debounce(fn, wait) {
+  let t;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), wait);
+  };
+}
+
+function readFormRecord(schema) {
+  const record = {};
+  for (const field of schema) {
+    const el = elForm.elements[field.name];
+    if (el) record[field.name] = el.value;
+  }
+  return record;
+}
+
+async function saveDraft() {
+  const schema = window._currentSchema;
+  if (!schema) return;
+  await chrome.storage.session.set({
+    draft: {
+      record: readFormRecord(schema),
+      url: _draftUrl,
+      schema,
+      destination: currentDestination
+    }
+  });
+}
+
+async function clearDraft() {
+  _draftUrl = "";
+  await chrome.storage.session.remove("draft");
+}
+
 async function handleExtraction(dataSource) {
   try {
     const data = await dataSource();
-    const fields = await askModelForFields(data);
-    const schema = await getFieldSchema();
-    window._currentSchema = schema;
-    currentDestination = await destinationPromise;
-    buildFormFromSchema(schema);
-    populateForm(fields, data.url);
-    setStatus("Fields extracted. Review and edit before saving.", "success");
+    await startExtractionJob(data);
+    // The result arrives via the storage listener (or init, on reopen).
+    // Loading stays on until the job finishes; keep the popup open or not —
+    // the request keeps running in the service worker either way.
   } catch (err) {
     setStatus("Error: " + err.message, "error");
-  } finally {
     setLoading(false);
   }
 }
@@ -338,6 +380,7 @@ elForm.addEventListener("submit", async (e) => {
       if (!response?.ok) throw new Error(response?.error || "Error during save.");
       setStatus("Saved successfully to Google Sheet!", "success");
     }
+    await clearDraft();
     elForm.reset();
     elForm.classList.add("hidden");
   } catch (err) {
@@ -346,3 +389,63 @@ elForm.addEventListener("submit", async (e) => {
     if (btnSave) btnSave.disabled = false;
   }
 });
+
+// --- React to the background extraction job ------------------------------
+// The job state lives in chrome.storage.session.extractionJob. We render it
+// both on popup open (init) and live while open (onChanged). A signature guard
+// avoids applying the same state twice (e.g. init read + change event racing).
+
+let _handledJobKey = null;
+function jobKey(job) {
+  return job ? job.status + ":" + (job.startedAt || 0) : null;
+}
+
+async function handleJobUpdate(job) {
+  if (!job) return;
+  if (_handledJobKey === jobKey(job)) return; // already applied this exact state
+  _handledJobKey = jobKey(job);
+
+  if (job.status === "running") {
+    setLoading(true, "Analyzing the posting with AI...");
+  } else if (job.status === "done") {
+    await applyExtractionResult({ fields: job.fields, url: job.url, schema: job.schema });
+    await chrome.storage.session.remove("extractionJob");
+  } else if (job.status === "error") {
+    setStatus("Error: " + (job.error || "Error during AI extraction."), "error");
+    setLoading(false);
+    await chrome.storage.session.remove("extractionJob");
+  }
+}
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "session" || !changes.extractionJob) return;
+  handleJobUpdate(changes.extractionJob.newValue);
+});
+
+// --- Init: resume an in-flight job, else restore a pending draft ----------
+
+async function init() {
+  currentDestination = await destinationPromise;
+
+  const { extractionJob } = await chrome.storage.session.get("extractionJob");
+  if (extractionJob) {
+    // A job is running or already finished — adopt it.
+    await handleJobUpdate(extractionJob);
+  } else {
+    // No active job — restore an unsaved draft, if any.
+    const { draft } = await chrome.storage.session.get("draft");
+    if (draft?.schema && draft.record) {
+      window._currentSchema = draft.schema;
+      _draftUrl = draft.url || "";
+      currentDestination = draft.destination || currentDestination;
+      buildFormFromSchema(draft.schema);
+      populateForm(draft.record, _draftUrl, /*recomputeAutos*/ false);
+      setStatus("Draft restored. Review and save when ready.", "success");
+    }
+  }
+
+  // Persist edits so they survive a popup close/reopen.
+  elForm.addEventListener("input", debounce(saveDraft, 250));
+}
+
+init();

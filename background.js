@@ -179,22 +179,45 @@ async function callLLM(cfg, systemPrompt, userMessage) {
   return fields;
 }
 
-// --- Field extraction entry point -----------------------------------------
+// --- Field extraction job (runs in the service worker) -------------------
+// The extraction is a long-running job owned by the service worker, not the
+// popup. Progress and the final result are written to chrome.storage.session
+// under "extractionJob" so they survive the popup closing mid-request: the
+// popup just kicks the job off and reads/subscribes to that key. A monotonic
+// token guards against a stale job overwriting a newer one (e.g. the user
+// clicks Extract again while the first call is still in flight).
 
-async function extractFieldsWithLLM({ text, url, pageTitle }) {
-  const cfg = await readConfig();
-  const schema = await getFieldSchema();
-  const systemPrompt = buildSystemPrompt(schema);
+let _jobToken = 0;
 
-  const userMessage = `Page URL: ${url}
+async function runExtractionJob({ text, url, pageTitle }) {
+  const myToken = ++_jobToken;
+  await chrome.storage.session.set({
+    extractionJob: { status: "running", url, pageTitle, token: myToken, startedAt: Date.now() }
+  });
+
+  try {
+    const cfg = await readConfig();
+    const schema = await getFieldSchema();
+    const systemPrompt = buildSystemPrompt(schema);
+    const userMessage = `Page URL: ${url}
 Page title: ${pageTitle}
 
 Job posting text:
 """
 ${text}
 """`;
+    const fields = await callLLM(cfg, systemPrompt, userMessage);
 
-  return await callLLM(cfg, systemPrompt, userMessage);
+    if (myToken !== _jobToken) return; // superseded by a newer job — discard
+    await chrome.storage.session.set({
+      extractionJob: { status: "done", url, schema, fields, startedAt: Date.now() }
+    });
+  } catch (err) {
+    if (myToken !== _jobToken) return;
+    await chrome.storage.session.set({
+      extractionJob: { status: "error", url, error: err.message, startedAt: Date.now() }
+    });
+  }
 }
 
 // --- Google Sheets helpers ------------------------------------------------
@@ -297,10 +320,11 @@ async function getDefaultFieldSchema() {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.type === "EXTRACT_FIELDS_LLM") {
-    extractFieldsWithLLM(msg.payload)
-      .then((fields) => sendResponse({ ok: true, fields }))
-      .catch((err) => sendResponse({ ok: false, error: err.message }));
-    return true;
+    // Kick off the job; the result lands in chrome.storage.session.extractionJob,
+    // so the popup doesn't need to stay open for the response.
+    runExtractionJob(msg.payload).catch(() => {});
+    sendResponse({ ok: true });
+    return;
   }
 
   if (msg?.type === "SAVE_TO_SHEET") {
