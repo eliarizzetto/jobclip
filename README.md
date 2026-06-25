@@ -3,7 +3,7 @@
 A Chrome extension (Manifest V3) that:
 
 1. Reads the text of the open web page (or a PDF, either open in the browser or uploaded from your computer);
-2. Sends it to an AI model (Anthropic Claude, Z.ai GLM, or any OpenAI-compatible API) asking it to extract the relevant job posting fields (company, title, salary, work mode, deadline, etc.) in structured format;
+2. Sends it to an AI model (a local model via Ollama, Anthropic Claude, or any OpenAI-compatible API) asking it to extract the relevant job posting fields (company, title, salary, work mode, deadline, etc.) in structured format;
 3. Shows the extracted fields in a small editable form before saving;
 4. Saves the row to a **Google Sheet** or a **local CSV file** (your choice — see "Data Destination") that acts as a "database" of all collected postings.
 
@@ -40,13 +40,7 @@ At this point the extension is installed but not yet configured: you need to set
 
 ## 2. Configuring the AI Provider
 
-The extension supports two provider types:
-
-### Anthropic (Claude)
-
-1. Go to <https://console.anthropic.com/settings/keys> and create an API key (an Anthropic account with credit/payment method is required; extracting one posting costs a fraction of a cent with the Haiku model).
-2. Click the extension icon in the Chrome toolbar, then the gear icon in the top right of the popup (or right-click the extension icon -> "Options").
-3. Select "Anthropic (Claude)" as provider and paste the API key. The default model (Claude Haiku 4.5) is recommended: fast and cheap. You can switch to Sonnet 4.6 if extraction is imprecise on complex postings.
+The extension supports two provider types; for a fully private, offline setup you can also run the model locally with [Ollama](#ollama-local-model) (described at the end of this section).
 
 ### OpenAI Compatible (Z.ai, OpenAI, Groq, Together, etc.)
 
@@ -56,6 +50,33 @@ The extension supports two provider types:
    - **OpenAI**: `https://api.openai.com/v1/chat/completions`
    - **Groq**: `https://api.groq.com/openai/v1/chat/completions`
 3. Enter your API key and model name (e.g. `glm-5.1`, `gpt-4o`, `llama-3.3-70b`).
+
+### Anthropic (Claude)
+
+1. Go to <https://console.anthropic.com/settings/keys> and create an API key (an Anthropic account with credit/payment method is required; extracting one posting costs a fraction of a cent with the Haiku model).
+2. Click the extension icon in the Chrome toolbar, then the gear icon in the top right of the popup (or right-click the extension icon -> "Options").
+3. Select "Anthropic (Claude)" as provider and paste the API key. The default model (Claude Haiku 4.5) is recommended: fast and cheap. You can switch to Sonnet 4.6 if extraction is imprecise on complex postings.
+
+### Ollama (local model)
+
+[Ollama](https://ollama.com) runs an LLM on your own computer. Because it speaks the same OpenAI-compatible protocol as the providers above, you configure it in the extension as "OpenAI Compatible" — but the posting text never leaves your machine. Combined with the [local CSV](#4-local-csv-file-alternative-to-google-sheets) destination, this gives you a completely offline pipeline: no cloud account, no API billing, no third party seeing the data.
+
+**Setup:**
+
+1. Install and start Ollama (see <https://ollama.com>).
+2. Pull a model that follows JSON instructions reliably — larger models extract more accurately:
+
+   ```
+   ollama pull gemma4:26b
+   ```
+
+   Very small models often fail at structured JSON output; prefer 7B+ sizes for this task. But beware: without a GPU, large models might be painfully slow.
+3. By default Ollama refuses requests originating from a browser (like this extension), so it must be explictily told to accept them via CORS. Set the `OLLAMA_ORIGINS` environment variable to `chrome-extension://*` before launching it, following [this guide](https://docs.ollama.com/faq#how-can-i-allow-additional-web-origins-to-access-ollama).
+4. In the extension Options, select **OpenAI Compatible** as the provider and enter:
+   - **Endpoint**: `http://localhost:11434/v1/chat/completions`
+   - **API key**: any non-empty placeholder, e.g. `ollama` (Ollama ignores it, but the extension requires a value to be present).
+   - **Model**: the exact name of the model you pulled, e.g. `llama3.3` (run `ollama list` to confirm).
+5. Save settings. The first extraction loads the model into memory and can take several seconds; later ones are faster.
 
 ---
 
@@ -245,6 +266,8 @@ Each row in the Google Sheet contains columns defined by your field schema. The 
 | notes | Other relevant information |
 | source | Website domain (e.g. linkedin.com) |
 | url | Full posting URL |
+| other | Other notes on the position |
+| applied_for | Whether an application process was started or not (default: false) |
 
 You can add custom columns by editing the field schema. You can also manually add columns directly in the Google Sheet (e.g. "application_status", "cv_sent_date", "priority") without the extension overwriting them: the append only adds the schema-defined columns in order.
 
