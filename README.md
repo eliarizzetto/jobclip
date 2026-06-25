@@ -46,9 +46,8 @@ The extension supports two provider types; for a fully private, offline setup yo
 
 1. In the extension Options, select "OpenAI Compatible" as provider.
 2. Enter the chat completions endpoint URL. Examples:
-   - **Z.ai**: `https://open.bigmodel.cn/api/paas/v4/chat/completions` or `https://api.z.ai/api/coding/paas/v4/chat/completions` for the Coding Plan.
+   - **Z.ai**: `https://api.z.ai/api/coding/paas/v4/chat/completions` for the Coding Plan.
    - **OpenAI**: `https://api.openai.com/v1/chat/completions`
-   - **Groq**: `https://api.groq.com/openai/v1/chat/completions`
 3. Enter your API key and model name (e.g. `glm-5.1`, `gpt-4o`, `llama-3.3-70b`).
 
 ### Anthropic (Claude)
