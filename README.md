@@ -31,7 +31,7 @@ Which steps you need depends **only** on your destination. Steps 1, 2, and 5 are
 
 1. Open Chrome and go to `chrome://extensions`.
 2. Enable "Developer mode" (toggle in the top right).
-3. Click "Load unpacked" and select the `job-tracker-extension` folder (this folder).
+3. Click "Load unpacked" and select the `job-tracker` folder (this folder).
 4. The extension will appear in the list named "Job Tracker". **Note the extension ID** (a 32-character string shown below the name): you'll need it in step 3.
 
 At this point the extension is installed but not yet configured: you need to set the AI provider API key and pick a data destination (a Google Sheet or a local CSV file).
