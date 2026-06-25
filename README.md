@@ -1,13 +1,13 @@
-# Job Tracker - Job Posting Collector Extension
+# Job Tracker - A Chrome Extension to keep track of visited job postings
 
 A Chrome extension (Manifest V3) that:
 
 1. Reads the text of the open web page (or a PDF, either open in the browser or uploaded from your computer);
 2. Sends it to an AI model (a local model via Ollama, Anthropic Claude, or any OpenAI-compatible API) asking it to extract the relevant job posting fields (company, title, salary, work mode, deadline, etc.) in structured format;
 3. Shows the extracted fields in a small editable form before saving;
-4. Saves the row to a **Google Sheet** or a **local CSV file** (your choice — see "Data Destination") that acts as a "database" of all collected postings.
+4. Saves the row to a **Google Sheet** or a **local CSV file** (your choice, see "Data Destination") that acts as a "database" of all collected postings.
 
-You pick the destination once in the extension Options. The **local CSV** option never sends your data to Google (no account or setup needed) — only your chosen AI provider sees the posting text for extraction. The **Google Sheet** option appends to an online spreadsheet you share with your account. Keys/credentials remain stored only locally in your browser (`chrome.storage.sync`).
+You pick the destination once in the extension Options. The **local CSV** option never sends your data to Google (no account or setup needed): only your chosen AI provider sees the posting text for extraction. The **Google Sheet** option appends to an online spreadsheet you share with your account. Keys/credentials remain stored only locally in your browser (`chrome.storage.sync`).
 
 ### Setup at a glance
 
@@ -32,7 +32,7 @@ Which steps you need depends **only** on your destination. Steps 1, 2, and 5 are
 1. Open Chrome and go to `chrome://extensions`.
 2. Enable "Developer mode" (toggle in the top right).
 3. Click "Load unpacked" and select the `job-tracker-extension` folder (this folder).
-4. The extension will appear in the list named "Job Tracker - Job Posting Collector". **Note the extension ID** (a 32-character string shown below the name): you'll need it in step 3.
+4. The extension will appear in the list named "Job Tracker". **Note the extension ID** (a 32-character string shown below the name): you'll need it in step 3.
 
 At this point the extension is installed but not yet configured: you need to set the AI provider API key and pick a data destination (a Google Sheet or a local CSV file).
 
@@ -59,12 +59,12 @@ The extension supports two provider types; for a fully private, offline setup yo
 
 ### Ollama (local model)
 
-[Ollama](https://ollama.com) runs an LLM on your own computer. Because it speaks the same OpenAI-compatible protocol as the providers above, you configure it in the extension as "OpenAI Compatible" — but the posting text never leaves your machine. Combined with the [local CSV](#4-local-csv-file-alternative-to-google-sheets) destination, this gives you a completely offline pipeline: no cloud account, no API billing, no third party seeing the data.
+[Ollama](https://ollama.com) runs an LLM on your own computer. Because it speaks the same OpenAI-compatible protocol as the providers above, you configure it in the extension as "OpenAI Compatible", but the posting text never leaves your machine. Combined with the [local CSV](#4-local-csv-file-alternative-to-google-sheets) destination, this gives you a completely offline pipeline: no cloud account, no API billing, no third party seeing the data.
 
 **Setup:**
 
 1. Install and start Ollama (see <https://ollama.com>).
-2. Pull a model that follows JSON instructions reliably — larger models extract more accurately:
+2. Pull a model that follows JSON instructions reliably, larger models extract more accurately:
 
    ```
    ollama pull gemma4:26b
@@ -95,7 +95,7 @@ This is the most "technical" step but only needs to be done once.
 
 1. Go to **APIs & Services -> OAuth consent screen**.
 2. User type: **External** is fine for personal use.
-3. Fill in the required fields (app name, support email, etc.) - you can use generic data, it's for personal use only.
+3. Fill in the required fields (app name, support email, etc.); you can use generic data, it's for personal use only.
 4. In the **Scopes** section, add the scope `https://www.googleapis.com/auth/spreadsheets`.
 5. In the **Test users** section, add your Gmail address (while the app is in "Testing" status, only listed test users can authorize it).
 
@@ -133,7 +133,7 @@ This is the most "technical" step but only needs to be done once.
 3. In the extension Options (gear icon), paste the ID in the "Google Sheet ID" field and optionally customize the tab name (default "Job Postings").
 4. Save settings.
 
-The first time you save a posting, Chrome will ask you to authorize the extension to access Google Sheets with your account: accept (you may see an "unverified app" warning because the app is in test mode - this is normal for personal projects, click "Advanced" -> "Go to... (unsafe)" to proceed, since you are the app creator).
+The first time you save a posting, Chrome will ask you to authorize the extension to access Google Sheets with your account: accept (you may see an "unverified app" warning because the app is in test mode - this is normal for personal projects, click "Advanced" -> "Go to... (unsafe)" to proceed).
 
 ---
 
@@ -148,7 +148,7 @@ If you prefer not to set up Google Cloud OAuth — or just want the data to stay
 Notes:
 - Only the columns defined by your field schema are written, in order (same as the Google Sheets flow). The first row is the header.
 - The browser stores a reference (file handle) to that file; it does **not** get a copy. The file is only read/written when you save.
-- The first save after starting Chrome may show a one-time permission prompt asking for access to the file — accept it to continue. This is a Chrome security requirement, not part of the extension.
+- The first save after starting Chrome may show a one-time permission prompt asking for access to the file -> accept it to continue. This is a Chrome security requirement, not part of the extension.
 - If you edit the CSV's header row by hand (rename or remove a column), the next save will stop with a clear error rather than corrupt the file: align the header with the schema, or pick a new file in Options.
 - To switch back to Google Sheets at any time, change the destination in Options and paste your Sheet ID (sections [§3](#3-configuring-google-sheets-access-oauth) and [§3b](#3b-create-the-destination-google-sheet)). Both destinations can coexist in your settings; only the selected one is used.
 
