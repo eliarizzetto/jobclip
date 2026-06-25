@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Job Tracker",
-  "version": "2.0",
+  "version": "1.0",
   "description": "Automatically extracts information from job postings (web pages and PDFs) via AI and saves them to Google Sheets or a local CSV file.",
   "permissions": [
     "activeTab",
