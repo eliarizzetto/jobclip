@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Job Tracker",
+  "name": "JobClip",
   "version": "1.0",
   "description": "Automatically extracts information from job postings (web pages and PDFs) via AI and saves them to Google Sheets or a local CSV file.",
   "permissions": [
@@ -15,7 +15,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Job Tracker",
+    "default_title": "JobClip",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",

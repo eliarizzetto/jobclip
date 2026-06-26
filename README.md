@@ -1,4 +1,4 @@
-# Job Tracker - A Chrome Extension to keep track of visited job postings
+# JobClip - A Chrome Extension to keep track of visited job postings
 
 A Chrome extension (Manifest V3) that:
 
@@ -31,8 +31,8 @@ Which steps you need depends **only** on your destination. Steps 1, 2, and 5 are
 
 1. Open Chrome and go to `chrome://extensions`.
 2. Enable "Developer mode" (toggle in the top right).
-3. Click "Load unpacked" and select the `job-tracker` folder (this folder).
-4. The extension will appear in the list named "Job Tracker". **Note the extension ID** (a 32-character string shown below the name): you'll need it in step 3.
+3. Click "Load unpacked" and select the `jobclip` folder (this folder).
+4. The extension will appear in the list named "JobClip". **Note the extension ID** (a 32-character string shown below the name): you'll need it in step 3.
 
 At this point the extension is installed but not yet configured: you need to set the AI provider API key and pick a data destination (a Google Sheet or a local CSV file).
 
@@ -278,4 +278,4 @@ You can add custom columns by editing the field schema. You can also manually ad
 - Pages protected by complex login (e.g. some LinkedIn sections behind paywall) may show only a preview of the text: extraction works on the actually visible text.
 - Very long PDFs are read only in the first 15 pages (usually sufficient for a job posting).
 - The extension doesn't work on `chrome://` pages, the Web Store, or other browser "protected" pages (Chrome security limitation).
-- For PDFs opened from local files (`file:///...pdf`), Chrome requires manually enabling "Allow access to file URLs" in the extension details (`chrome://extensions` -> Job Tracker -> Details).
+- For PDFs opened from local files (`file:///...pdf`), Chrome requires manually enabling "Allow access to file URLs" in the extension details (`chrome://extensions` -> JobClip -> Details).
